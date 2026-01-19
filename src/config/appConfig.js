@@ -21,6 +21,13 @@ export const AppConfig = {
 
   // Simulation update interval (ms) for mock WebSocket
   MOCK_UPDATE_INTERVAL: 1000,
+
+  // Max time to execute API call before abort
+  API_TIMEOUT: 10_000,
+
+  HUB_MANAGER_SERVICE: {
+    BASE_URL: import.meta.env.VITE_HUB_URL || "http://localhost:80"
+  }
 };
 
 export default AppConfig;

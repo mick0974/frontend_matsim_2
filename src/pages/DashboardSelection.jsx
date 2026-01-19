@@ -44,7 +44,7 @@ const DashboardSelection = () => {
       description: 'Manage charging hubs and monitor stall occupancy',
       icon: <EvStationIcon sx={{ fontSize: 40, color: '#ff9800' }} />,
       route: '/hub/dashboard',
-      enabled: chargingHubs && chargingHubs.length > 0,
+      enabled: true,//chargingHubs && chargingHubs.length > 0,
       badge: chargingHubs ? `${chargingHubs.length} Hubs` : null,
     },
   ];
