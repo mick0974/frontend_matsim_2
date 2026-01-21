@@ -58,6 +58,7 @@ const DashboardSelection = () => {
       bgcolor: 'background.default',
       p: { xs: 2, md: 4, lg: 6 } // Padding responsivo
     }}>
+      
       <Box sx={{ mb: 6, textAlign: 'left' }}>
         <Typography variant="h4" component="h1" fontWeight="800" gutterBottom>
           Dashboard Selection

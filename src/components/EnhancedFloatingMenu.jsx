@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { styled } from '@mui/material/styles';
+
 import {
   Paper,
   Typography,
@@ -26,6 +28,34 @@ import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import SearchIcon from '@mui/icons-material/Search';
 import DoneIcon from '@mui/icons-material/Done';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CardActions from '@mui/material/CardActions';
+import Collapse from '@mui/material/Collapse';
+
+
+const ExpandMore = styled((props) => {
+  const { expand, ...other } = props;
+  return <IconButton {...other} />;
+})(({ theme }) => ({
+  marginLeft: 'auto',
+  transition: theme.transitions.create('transform', {
+    duration: theme.transitions.duration.shortest,
+  }),
+  variants: [
+    {
+      props: ({ expand }) => !expand,
+      style: {
+        transform: 'rotate(0deg)',
+      },
+    },
+    {
+      props: ({ expand }) => !!expand,
+      style: {
+        transform: 'rotate(180deg)',
+      },
+    },
+  ],
+}));
 
 const EnhancedFloatingMenu = ({
   vehicles,
@@ -37,6 +67,13 @@ const EnhancedFloatingMenu = ({
   isConnected,
 }) => {
   const [tabIndex, setTabIndex] = useState(0);
+  
+  const [expanded, setExpanded] = React.useState(false);
+  const handleExpandClick = () => {
+    setExpanded(!expanded);
+  };
+
+
   const [pinnedVehicles, setPinnedVehicles] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -504,8 +541,8 @@ const EnhancedFloatingMenu = ({
                       borderLeft: isSaturated ? '4px solid #f44336' : '4px solid #4caf50',
                     }}
                   >
-                    <CardContent sx={{ pb: 1.5 }}>
-                      <Typography variant="subtitle2" fontWeight="bold">
+                    <CardContent sx={{ pb: 0.5 }}>
+                      <Typography variant="subtitle1" fontWeight="bold">
                         {hub.name}
                       </Typography>
 
@@ -553,6 +590,69 @@ const EnhancedFloatingMenu = ({
                         </Box>
                       )}
                     </CardContent>
+                    
+                    <CardActions disableSpacing>
+                      <ExpandMore
+                        expand={expanded}
+                        onClick={handleExpandClick}
+                        aria-expanded={expanded}
+                        aria-label="show more"
+                      >
+                        <ExpandMoreIcon />
+                      </ExpandMore>
+                    </CardActions>
+                    
+                    <Collapse in={expanded} timeout="auto" unmountOnExit>
+                      <List dense sx={{ maxHeight: 300, overflowY: 'auto'}}>
+                      
+                       {/*chargers.map((charger, index) => (
+                         
+                        ))*/}
+
+                         <ListItem
+                            key={1}
+                            sx={{
+                              cursor: 'pointer',
+                              '&:hover': { backgroundColor: '#f5f5f5' },
+                            }}
+                          >
+                            {/* Numero progressivo */}
+                            <Typography
+                              variant="caption"
+                              sx={{ width: 24, fontWeight: 600, color: 'text.secondary' }}
+                            >
+                              1.
+                            </Typography>
+
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                   {/* Tipologia */}
+                                  <Typography variant="body2" fontWeight={600}>
+                                    ACC
+                                  </Typography>
+
+                                  {/* Potenza */}
+                                  <Typography variant="caption" color="text.secondary">
+                                   40/55 kW
+                                  </Typography>
+                                </Box>
+                              }
+                              secondary={
+                                <Box sx={{ display: 'flex', gap: 1, mt: 0.5, display: 'flex', justifyContent: 'space-between'}}>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Ev_1
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    SoC: 40%
+                                  </Typography>
+                                </Box>
+                              }
+                            />
+                          </ListItem>
+                      </List>
+
+                    </Collapse>
                   </Card>
                 );
               })
