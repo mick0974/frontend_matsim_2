@@ -123,7 +123,7 @@ const VehiclesConfigSection = ({ config, onChange }) => {
       </Paper>
 
       {/* User Type Distribution */}
-      <Paper sx={{ p: 3, bgcolor: '#f9f9f9' }}>
+      <Paper sx={{ p: 3, bgcolor: '#f9f9f9', display: 'none'}}>
         <Typography variant="h6" gutterBottom>
           User Type Distribution
         </Typography>

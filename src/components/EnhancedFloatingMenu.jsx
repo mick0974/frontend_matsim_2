@@ -120,6 +120,51 @@ const DataCard = ({ title, value}) => (
   </Card>
 );
 
+
+const SimulationProgressBar = ({ currentTime, progress = 0 }) => {
+  // Funzione per determinare il colore in base allo scaglione
+  const getProgressColor = (val) => {
+    if (val < 25) return '#2196f3'; // Blu (Fase iniziale)
+    if (val < 60) return '#4caf50'; // Verde (In corso)
+    if (val < 90) return '#ff9800'; // Arancione (Fase finale)
+    return '#f44336';              // Rosso (Quasi terminata)
+  };
+
+  const currentColor = getProgressColor(progress);
+
+  return (
+    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="caption" fontWeight="bold" color="text.secondary">
+          SIMULATION TIME
+        </Typography>
+        <Typography variant="caption" fontWeight="bold" sx={{ fontFamily: 'monospace', fontSize: '1rem', color: currentColor }}>
+          {currentTime || "00:00:00"}
+        </Typography>
+      </Box>
+      
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <LinearProgress 
+          variant="determinate" 
+          value={Math.min(progress, 100)} 
+          sx={{ 
+            flexGrow: 1, 
+            height: 10, 
+            borderRadius: 5,
+            bgcolor: 'rgba(0,0,0,0.05)',
+            '& .MuiLinearProgress-bar': {
+              borderRadius: 5,
+              bgcolor: currentColor,
+              transition: 'transform 0.4s ease-in-out, background-color 0.5s ease'
+            }
+          }} 
+        />
+      </Box>
+    </Box>
+  );
+};
+
+
 // --- LISTA VEICOLI
 const VehicleList = ({ vehicles, onSelectVehicle, pinnedVehicles, togglePin, stateConfig }) => {
   return (
@@ -222,6 +267,12 @@ const EnhancedFloatingMenu = ({
           </IconButton>
         </Tooltip>
       </Box>
+
+      <SimulationProgressBar 
+        currentTime={"10:20:30"} 
+        progress={"10"} 
+      />
+
 
       {/* Tabs */}
       <Tabs value={tabIndex} onChange={(_, n) => setTabIndex(n)} variant="fullWidth" sx={{ bgcolor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}>
