@@ -114,7 +114,7 @@ const HubManagerDashboard = () => {
   const chargerStructureMap = new Map(
     (hubStructure.chargerStructureDTOs || []).map(chargerStructure => [
       chargerStructure.chargerId,
-      {"chargerType": chargerStructure.chargerType, "plugPowerPw": chargerStructure.plugPowerKw}
+      {"chargerType": chargerStructure.chargerType, "plugPowerKw": chargerStructure.plugPowerKw}
     ])
   );
 
@@ -157,7 +157,7 @@ const HubManagerDashboard = () => {
   // Error messages to render
   const getErrorMessage = () => {
     if (hubStructureError)
-      return `Error loading hub structure`;
+      return `Errore nel caricamento delle informazioni sulla struttura dell'hub`;
 
     if (hubStateError)
       return `${hubStateError}`;
@@ -165,7 +165,7 @@ const HubManagerDashboard = () => {
     if (operationalStateChangeError)
       return operationalStateChangeError;
 
-    return 'An error occurred while loading hub data.';
+    return `Errore nel caricamento dei dati dell'hub.`;
   };
 
   // Get today's date in YYYY-MM-DD format
@@ -179,54 +179,47 @@ const HubManagerDashboard = () => {
   const allReservations = reservationsData;
   const displayedReservations = reservationTab === 0 ? todayReservations : allReservations;
 
-  // Get charger type label
-  const getChargerTypeLabel = (plugType) => {
-    if (plugType === 'AC') return 'Normal';
-    if (plugType === 'CCS') return 'Fast';
-    return plugType;
-  };
-
   // Get operational state chip
   const getChargerOperationalStateChip = (state) => {
     const stateConfig = {
       'NOT_INITIALIZED': {
-        label: 'Not Initialized',
+        label: 'Non inizializzato',
         color: 'default',
         variant: 'outlined',
         icon: null
       },
       'IN_ACTIVATION': {
-        label: 'Activating',
+        label: 'In attivazione',
         color: 'info',
         variant: 'filled',
         icon: <CircularProgress size={12} color="inherit" />
       },
       'IN_DEACTIVATION': {
-        label: 'Deactivating',
+        label: 'In disattivazione',
         color: 'warning',
         variant: 'filled',
         icon: <CircularProgress size={12} color="inherit" />
       },
       'ACTIVE': {
-        label: 'Active',
+        label: 'Attivo',
         color: 'success',
         variant: 'filled',
         icon: null
       },
       'ON': {
-        label: 'On',
+        label: 'Acceso',
         color: 'success',
         variant: 'filled',
         icon: null
       },
       'INACTIVE': {
-        label: 'Inactive',
+        label: 'Inattivo',
         color: 'error',
         variant: 'filled',
         icon: null
       },
       'OFF': {
-        label: 'Off',
+        label: 'Spento',
         color: 'error',
         variant: 'filled',
         icon: null
@@ -288,15 +281,15 @@ const HubManagerDashboard = () => {
       console.error('Error toggling charger state:', err);
 
       if (err.response?.status === 404) {
-        setHubStateError('Hub not found.');
+        setHubStateError('Hub non trovato.');
       } else if (err.response?.status === 409) {
-        setOperationalStateChangeError('At least one charger must remain active or the charger is already in transition.');
+        setOperationalStateChangeError('Almeno un connettore deve essere sempre attivo oppure il connettore scelto sta già venendo attivato/disattivato.');
       } else if (err.response?.status === 503) {
-        setOperationalStateChangeError('Unable to communicate with the simulator.');
+        setOperationalStateChangeError('Impossibile comunicare col simulatore.');
       } else if (!err.response) {
-        setOperationalStateChangeError('Connection error.');
+        setOperationalStateChangeError('Errore di connessione.');
       } else {
-        setOperationalStateChangeError('An unexpected error occurred. Please try again later.');
+        setOperationalStateChangeError('Si è verificato un errore imprevisto, riprova più tardi.');
       }
     }
   };
@@ -312,8 +305,8 @@ const HubManagerDashboard = () => {
     } catch (err) {
       console.error('Error fetching hub structure:', err);
       const errorMsg = err.response?.status === 404
-        ? 'Selected hub not found'
-        : `Failed to fetch hub structure`;
+        ? 'Hub selezionato non trovato'
+        : `Errore nel recupero delle informazioni dell'hub selezionato`;
       setHubStructureError(errorMsg);
       setHubStructure(DEFAULT_HUB_STRUCTURE);
     }
@@ -330,8 +323,8 @@ const HubManagerDashboard = () => {
     } catch (err) {
       console.error('Error fetching hub state:', err);
       const errorMsg = err.response?.status === 404
-        ? 'Hub not found'
-        : `Failed to fetch hub state`;
+        ? 'Hub selezionato non trovato'
+        : `Errore nel recupero delle informazioni dell'hub selezionato`;
       setHubStateError(errorMsg);
       setHubState(DEFAULT_HUB_STATE);
     }
@@ -348,8 +341,8 @@ const HubManagerDashboard = () => {
     } catch (err) {
       console.error('Error fetching reservations:', err);
       const errorMsg = err.response?.status === 404
-        ? 'Hub not found'
-        : `Failed to fetch reservations`;
+        ? 'Hub selezionato non trovato'
+        : `Errore nel recupero delle prenotazioni`;
       setReservationsError(errorMsg);
       setReservations(DEFAULT_RESERVATIONS);
     }
@@ -396,26 +389,28 @@ const HubManagerDashboard = () => {
     const isDisabled = isNotInitialized || isTransitioning || useMockData || (isActive && !canChargersBeDeactivate);
 
     const overlayButtonText = useMockData
-      ? 'Disabled in mock mode' : (isNotInitialized
-        ? "Must Be Initialized" : (isTransitioning
-          ? "Waiting" : (isActive
-            ? 'Deactivate' : 'Activate')))
+      ? 'Disattivato in "mock mode"' : (isNotInitialized
+        ? "Deve essere inizializzato" : (isTransitioning
+          ? "In attesa" : (isActive
+            ? 'Disattiva' : 'Attiva')))
 
+    console.log("charger", charger)
     return (
       <TableRow key={charger.chargerId}>
         <TableCell variant="head">{charger.chargerId}</TableCell>
         <TableCell>
           <Chip
-            label={getChargerTypeLabel(charger.chargerType)}
+            label={charger.chargerType}
             size="small"
             variant="outlined"
             color={charger.chargerType !== 'AC' ? 'warning' : 'default'}
           />
         </TableCell>
+        <TableCell>{charger.plugPowerKw}</TableCell>
         <TableCell>{getChargerOperationalStateChip(charger.chargerOperationalState)}</TableCell>
         <TableCell>
           <Chip
-            label={charger.occupied ? 'Occupied' : 'Available'}
+            label={charger.occupied ? 'Occupato' : 'Disponibile'}
             size="small"
             variant="filled"
             color={charger.occupied ? 'error' : 'primary'}
@@ -450,7 +445,7 @@ const HubManagerDashboard = () => {
       {/* Header */}
       <Paper elevation={1} sx={{ p: 2, borderRadius: 0 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/')} sx={{ mb: 1 }}>
-          Back to Dashboards
+          Torna alle Dashboard
         </Button>
         <Typography variant="h5" fontWeight="bold">
           Hub Manager
@@ -474,11 +469,11 @@ const HubManagerDashboard = () => {
           }}
         >
           <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
-            Hub Selection & Statistics
+            Selezione Hub e Statistica
           </Typography>
 
           <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Select Hub</InputLabel>
+            <InputLabel>Seleziona l'Hub</InputLabel>
             <Select value={selectedHubId || ''} onChange={(e) => setSelectedHubId(e.target.value)} label="Select Hub">
               {hubs.map((hub) => (
                 <MenuItem key={hub.id} value={hub.id}>{hub.name}</MenuItem>
@@ -492,7 +487,7 @@ const HubManagerDashboard = () => {
               {hubManagerServiceError ? (
                 <Alert severity="error" icon={<ErrorOutlineIcon />} sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                    Unable to Load Hub Data
+                    Impossibile caricare dati hub
                   </Typography>
                   <Typography variant="body2">
                     {getErrorMessage()}
@@ -500,12 +495,12 @@ const HubManagerDashboard = () => {
                 </Alert>
               ) : (
                 <>
-                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>Hub Overview</Typography>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>Dati Hub</Typography>
                   <Grid container spacing={2} sx={{ mb: 4 }}>
                     <Grid item xs={6}>
                       <Card variant="outlined">
                         <CardContent sx={{ pb: 1.5 }}>
-                          <Typography variant="caption" color="text.secondary">Location</Typography>
+                          <Typography variant="caption" color="text.secondary">Posizione</Typography>
                           <Typography variant="body2" sx={{ mt: 1 }}>
                             {selectedHub.pos[0].toFixed(4)}, {selectedHub.pos[1].toFixed(4)}
                           </Typography>
@@ -515,7 +510,7 @@ const HubManagerDashboard = () => {
                     <Grid item xs={6}>
                       <Card variant="outlined">
                         <CardContent sx={{ pb: 1.5 }}>
-                          <Typography variant="caption" color="text.secondary">Active Chargers</Typography>
+                          <Typography variant="caption" color="text.secondary">Connettori Attivi</Typography>
                           <Typography variant="h6" sx={{ mt: 1 }}>{activeChargers} / {chargers.length}</Typography>
                         </CardContent>
                       </Card>
@@ -523,7 +518,7 @@ const HubManagerDashboard = () => {
                     <Grid item xs={6}>
                       <Card variant="outlined">
                         <CardContent sx={{ pb: 1.5 }}>
-                          <Typography variant="caption" color="text.secondary">Vehicles Charging</Typography>
+                          <Typography variant="caption" color="text.secondary">Veicoli in Ricarica</Typography>
                           <Typography variant="h6" sx={{ mt: 1 }}>{occupiedChargers}</Typography>
                         </CardContent>
                       </Card>
@@ -533,24 +528,24 @@ const HubManagerDashboard = () => {
                   {/* Power Usage Section */}
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold">
-                      Power Management
+                      Gestione Ricarica
                     </Typography>
                   </Box>
                   <Card variant="outlined" sx={{ mb: 4 }}>
                     <CardContent>
                       <Grid container spacing={2}>
                         <Grid item xs={4}>
-                          <Typography variant="caption" color="text.secondary">Max Charging Power</Typography>
+                          <Typography variant="caption" color="text.secondary">Potenza Massima Erogabile</Typography>
                           <Typography variant="body1" fontWeight="bold">{currentMaxPower.toFixed(2)} kW</Typography>
                         </Grid>
                         <Grid item xs={4}>
-                          <Typography variant="caption" color="text.secondary">In Use</Typography>
+                          <Typography variant="caption" color="text.secondary">Potenza in Uso</Typography>
                           <Typography variant="body1" fontWeight="bold" color="primary.main">
                             {currentPowerInUse.toFixed(2)} kW
                           </Typography>
                         </Grid>
                         <Grid item xs={4}>
-                          <Typography variant="caption" color="text.secondary">Remaining</Typography>
+                          <Typography variant="caption" color="text.secondary">Potenza Erogabile Rimanente</Typography>
                           <Typography variant="body1" fontWeight="bold" color="success.main">
                             {currentPowerRemaining.toFixed(2)} kW
                           </Typography>
@@ -558,7 +553,7 @@ const HubManagerDashboard = () => {
                       </Grid>
                       <Box sx={{ mt: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                          <Typography variant="caption" color="text.secondary">Power Usage</Typography>
+                          <Typography variant="caption" color="text.secondary">Utilizzo dell'Hub</Typography>
                           <Typography variant="caption" fontWeight="bold">
                             {currentPowerInUsePercentage.toFixed(2)}%
                           </Typography>
@@ -578,27 +573,31 @@ const HubManagerDashboard = () => {
                     </CardContent>
                   </Card>
 
-                {operationalStateChangeError && (
-                  <Alert severity="error" icon={<ErrorOutlineIcon />} sx={{ mb: 3 }}>
-                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                      Unable to activate/deactivate charger
-                    </Typography>
-                    <Typography variant="body2">
-                      {operationalStateChangeError}
-                    </Typography>
-                  </Alert>
-                )}
-                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>Charging Stations</Typography>
+                  <CardContent>
+                    <Box textAlign="center">
+                      {operationalStateChangeError && (
+                        <Typography variant="body2">
+                          {operationalStateChangeError}
+                        </Typography>
+                      )}
+
+                      <Typography variant="body2" color="text.secondary">
+                        Nessuna Prenotazione Ancora Salvata
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>Connettori</Typography>
                   <TableContainer sx={{ maxHeight: 300, mb: 4 }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                          <TableCell>Charger</TableCell>
-                          <TableCell>Type</TableCell>
-                          <TableCell>Status</TableCell>
-                          <TableCell>Occupancy</TableCell>
-                          <TableCell align="right">Power In Use (kW)</TableCell>
-                          <TableCell align="center">Action</TableCell>
+                          <TableCell>Connettore</TableCell>
+                          <TableCell>Tipo</TableCell>
+                          <TableCell>Potenza (kW)</TableCell>
+                          <TableCell>Stato</TableCell>
+                          <TableCell>Occupazione</TableCell>
+                          <TableCell align="right">Potenza in uso (kW)</TableCell>
+                          <TableCell align="center">Attiva/Disattiva</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -609,21 +608,21 @@ const HubManagerDashboard = () => {
                     </Table>
                   </TableContainer>
 
-                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>Capacity Breakdown</Typography>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>Capacità</Typography>
                   <Stack spacing={2} sx={{ mb: 4 }}>
                     <Card variant="outlined">
                       <CardContent sx={{ pb: 1.5 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption">Normal Charging</Typography>
-                          <Typography variant="caption" fontWeight="bold">{normalActive} / {totalNormalChargers} Active</Typography>
+                          <Typography variant="caption">Connettori a Ricarica Normale</Typography>
+                          <Typography variant="caption" fontWeight="bold">{normalActive} / {totalNormalChargers} Attivi</Typography>
                         </Box>
                         <LinearProgress variant="determinate" value={totalNormalChargers > 0 ? (normalActive / totalNormalChargers) * 100 : 0} />
                       </CardContent>
 
                       <CardContent sx={{ pb: 1.5 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption">Fast Charging</Typography>
-                          <Typography variant="caption" fontWeight="bold">{fastActive} / {totalFastChargers} Active</Typography>
+                          <Typography variant="caption">Connettori a Ricarica Rapida</Typography>
+                          <Typography variant="caption" fontWeight="bold">{fastActive} / {totalFastChargers} Attivi</Typography>
                         </Box>
                         <LinearProgress
                           variant="determinate"
@@ -635,16 +634,16 @@ const HubManagerDashboard = () => {
                     <Card variant="outlined">
                       <CardContent sx={{ pb: 1.5 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption">Normal Charging</Typography>
-                          <Typography variant="caption" fontWeight="bold">{normalOccupied} / {normalActive} Occupied</Typography>
+                          <Typography variant="caption">Connettori a Ricarica Lenta</Typography>
+                          <Typography variant="caption" fontWeight="bold">{normalOccupied} / {normalActive} Occupati</Typography>
                         </Box>
                         <LinearProgress variant="determinate" value={normalActive > 0 ? (normalOccupied / normalActive) * 100 : 0} />
                       </CardContent>
 
                       <CardContent sx={{ pb: 1.5 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption">Fast Charging</Typography>
-                          <Typography variant="caption" fontWeight="bold">{fastOccupied} / {fastActive} Occupied</Typography>
+                          <Typography variant="caption">Connettori a Ricarica Rapida</Typography>
+                          <Typography variant="caption" fontWeight="bold">{fastOccupied} / {fastActive} Occupati</Typography>
                         </Box>
                         <LinearProgress
                           variant="determinate"
@@ -661,7 +660,7 @@ const HubManagerDashboard = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <EventIcon sx={{ mr: 1, color: 'primary.main' }} />
                     <Typography variant="subtitle2" fontWeight="bold">
-                      Reservations
+                      Prenotazioni
                     </Typography>
                   </Box>
 
@@ -677,21 +676,21 @@ const HubManagerDashboard = () => {
                     onChange={(e, newValue) => setReservationTab(newValue)}
                     sx={{ mb: 2, minHeight: 40 }}
                   >
-                    <Tab label={`Today (${todayReservations.length})`} sx={{ minHeight: 40 }} />
-                    <Tab label={`All (${allReservations.length})`} sx={{ minHeight: 40 }} />
+                    <Tab label={`Oggi (${todayReservations.length})`} sx={{ minHeight: 40 }} />
+                    <Tab label={`Tutte (${allReservations.length})`} sx={{ minHeight: 40 }} />
                   </Tabs>
 
                   {!reservationsError && displayedReservations.length === 0 ? (
                     <Card variant="outlined">
                       <CardContent>
                         <Typography variant="body2" color="text.secondary" align="center">
-                   <Typography variant="body2">
-  {operationalStateChangeError}
-</Typography>
-<Typography variant="body2">
-  {operationalStateChangeError}
-</Typography>
-       No reservations registered yet
+                         <Typography variant="body2">
+                          {operationalStateChangeError}
+                        </Typography>
+                        <Typography variant="body2">
+                          {operationalStateChangeError}
+                        </Typography>
+                         Nessuna Prenotazione Ancora Salvata
                         </Typography>
                       </CardContent>
                     </Card>
@@ -700,10 +699,10 @@ const HubManagerDashboard = () => {
                       <Table size="small">
                         <TableHead>
                           <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                            <TableCell>Vehicle</TableCell>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Time Slot</TableCell>
-                            <TableCell>Type</TableCell>
+                            <TableCell>Veicolo</TableCell>
+                            <TableCell>Data</TableCell>
+                            <TableCell>Fascia Oraria</TableCell>
+                            <TableCell>Tipo di Connettore</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -722,7 +721,7 @@ const HubManagerDashboard = () => {
                               </TableCell>
                               <TableCell>
                                 <Chip
-                                  label={getChargerTypeLabel(reservation.reservedPlug)}
+                                  label={reservation.reservedPlug}
                                   size="small"
                                   variant="outlined"
                                   color={reservation.reservedPlug !== 'AC' ? 'warning' : 'default'}
