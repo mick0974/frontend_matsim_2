@@ -30,37 +30,43 @@ export function useSimulationWebSocket(updateMonitoringData) {
 
         if (msg.type !== "TimeStepUpdate" || !msg.payload) return;
 
-        const { vehicles, hubs } = msg.payload;
+        const { vehicles, hubs, timestamp, formattedTime } = msg.payload;
 
         // Estrai solo i dati dinamici da passare al Context
-        const wsVehicles = vehicles.map((v) => ({
-          id: v.vehicleId,
-          soc: v.soc,
-          kmDriven: v.kmDriven,
-          currentEnergyJoules: v.currentEnergyJoules,
-          state: v.State || v.state || "UNKNOWN",
-          linkId: v.linkId,
-          speed: v.speed,
-          heading: v.heading,
-          pos: v.pos,
-        }));
+        const wsVehicles = vehicles.map((v) => {
+          return {
+            id: v.vehicleId,
+            soc: v.soc,
+            kmDriven: v.kmDriven,
+            currentEnergyJoules: v.currentEnergyJoules,
+            state: v.State || v.state || "UNKNOWN",
+            linkId: v.linkId,
+            speed: v.speed,
+            heading: v.heading,
+            pos: v.position
+          };
+        });
 
-        const wsHubs = hubs.map((h) => ({
-          id: h.hubId,
-          energy: h.energy,
-          occupancy: h.occupancy,
-          chargers: { ...h.chargers },
-          pos: h.pos,
-        }));
+        const wsHubs = hubs.map((h) => {
+          return {
+            id: h.hubId,
+            energy: h.energy,
+            occupancy: h.occupancy,
+            chargers: { ...h.chargers },
+            pos: h.position,
+          };
+        });
 
-        latestStateRef.current = { wsVehicles, wsHubs };
+        latestStateRef.current = { wsVehicles, wsHubs, timestamp, formattedTime };
 
         if (!rafRef.current) {
           rafRef.current = requestAnimationFrame(() => {
-            // Passa solo i dati dinamici, il Context calcola le stats
+            // Passa dati dinamici e temporali al Context
             updateMonitoringData(
               latestStateRef.current.wsVehicles,
-              latestStateRef.current.wsHubs
+              latestStateRef.current.wsHubs,
+              latestStateRef.current.timestamp,
+              latestStateRef.current.formattedTime
             );
             rafRef.current = null;
           });

@@ -23,7 +23,7 @@ export const POI_TYPES = {
   hub: {
     label: 'hub',
     category: 'fixed',
-    icon: <EvStationIcon fontSize="inherit" />,
+    icon: <EvStationIcon fontSize="inherit"/>,
     color: '#4caf50',
     renderPopup: (poi) => (
       <Box>

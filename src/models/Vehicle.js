@@ -34,7 +34,6 @@ export class Vehicle {
     this.kmDriven = data.kmDriven || data.distanceTraveledKm || 0;
     this.state = data.state || 'unknown'; // moving, charging, idle, stopped
     this.linkId = data.linkId || null;
-    this.simTime = data.simTime || 0;
     this.heading = data.heading || 0;
     this.speed = data.speed || 0;
     this.pos = data.pos || null; // { lat, lng }
@@ -58,13 +57,12 @@ export class Vehicle {
     if (newState !== undefined) this.state = newState.toLowerCase();
     
     if (wsData.linkId !== undefined) this.linkId = wsData.linkId;
-    if (wsData.simTime !== undefined) this.simTime = wsData.simTime;
     if (wsData.heading !== undefined) this.heading = wsData.heading;
     if (wsData.speed !== undefined) this.speed = wsData.speed;
     
-    // Importante: crea un nuovo oggetto pos se arriva dalla WS
+    // Importante: pos arriva già come [lat, lng] dal WebSocket handler
     if (wsData.pos !== undefined) {
-      this.pos = wsData.pos ? { ...wsData.pos } : null;
+      this.pos = Array.isArray(wsData.pos) ? [...wsData.pos] : wsData.pos;
     }
   }
 
@@ -74,8 +72,8 @@ export class Vehicle {
   toJSON() {
     return { 
       ...this,
-      // Ci assicuriamo che l'oggetto posizione sia un nuovo riferimento
-      pos: this.pos ? { ...this.pos } : null,
+      // Ci assicuriamo che l'array posizione sia un nuovo riferimento
+      pos: Array.isArray(this.pos) ? [...this.pos] : this.pos,
     };
   }
 
@@ -90,12 +88,22 @@ export class Vehicle {
       kmDriven: this.kmDriven,
       state: this.state,
       linkId: this.linkId,
-      simTime: this.simTime,
       heading: this.heading,
       speed: this.speed,
-      pos: this.pos,
+      pos: Array.isArray(this.pos) ? [...this.pos] : this.pos,
     };
   }
+}
+
+/**
+ * Converte position {x, y} dal backend in [lat, lng] per Leaflet
+ */
+function convertPosition(position, fallbackPos) {
+  if (position && position.x !== undefined && position.y !== undefined) {
+    // Backend fornisce position: {x, y} dove x=lng, y=lat
+    return [position.y, position.x];
+  }
+  return fallbackPos || null;
 }
 
 /**
@@ -129,5 +137,6 @@ export function createVehicleFromAPI(apiData) {
     kmDriven: apiData.distanceTraveledKm,
     state: apiData.state,
     linkId: apiData.linkId,
+    pos: convertPosition(apiData.position, apiData.pos),
   });
 }

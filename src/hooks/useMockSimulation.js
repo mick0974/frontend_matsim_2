@@ -19,11 +19,13 @@ export const useMockSimulation = () => {
   const intervalRef = useRef(null);
 
   // Initialize vehicle state for smooth tracking
+  // NOTA: Le posizioni ora arrivano dal backend, non più generate mock
   const initializeVehicleStates = useCallback(() => {
     vehicleStateRef.current = {};
     vehicles.forEach((v) => {
       if (!vehicleStateRef.current[v.id]) {
-        const pos = Array.isArray(v.pos) ? [...v.pos] : [52.52, 13.40];
+        // Usa la posizione dal backend, nessun fallback mock
+        const pos = Array.isArray(v.pos) ? [...v.pos] : null;
         vehicleStateRef.current[v.id] = {
           pos,
           direction: {

@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { styled } from '@mui/material/styles';
 import {
   Paper, Typography, Tabs, Tab, Box, Stack, List, ListItem, ListItemIcon,
   ListItemText, Card, CardContent, LinearProgress, Chip, Divider, IconButton,
-  TextField, Tooltip, Collapse, CardActions
+  TextField, Tooltip
 } from '@mui/material';
 
 // Icone
@@ -15,42 +14,41 @@ import {
   SignalCellularAlt as SignalCellularAltIcon,
   FiberManualRecord as FiberManualRecordIcon,
   Search as SearchIcon,
-  Done as DoneIcon,
-  ExpandMore as ExpandMoreIcon,
   PlayArrow as PlayArrowIcon,
-  Stop as StopIcon
+  Stop as StopIcon,
+  Route as RouteIcon,
+  Settings as Settings
 } from '@mui/icons-material';
 
 import HubCard from "./HubCard.jsx";
 
-// Componente Styled per l'espansione dei Hub
-const ExpandMore = styled((props) => {
-  const { expand, ...other } = props;
-  return <IconButton {...other} />;
-})(({ theme, expand }) => ({
-  marginLeft: 'auto',
-  transition: theme.transitions.create('transform', {
-    duration: theme.transitions.duration.shortest,
-  }),
-  transform: expand ? 'rotate(180deg)' : 'rotate(0deg)',
-}));
-
 // --- SOTTO-COMPONENTE: FILTRI ---
-const FilterChips = ({ filters, onFiltersChange, stateConfig}) => (
+const FilterChips = ({ filters, onFiltersChange, stateConfig }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', py: 0.5 }}>
-    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+    <Typography
+      variant="caption"
+      sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}
+    >
       Filters
     </Typography>
+
     <Stack direction="row" spacing={1}>
       {Object.entries(stateConfig).map(([key, cfg]) => {
-        if (!cfg.filterKey) return null;
-        const isActive = filters[cfg.filterKey];
+        if (key === 'unknown') return null; // opzionale
+
+        const isActive = filters[key];
+
         return (
           <Chip
             key={key}
             label={cfg.label}
             size="small"
-            onClick={() => onFiltersChange({ ...filters, [cfg.filterKey]: !isActive })}
+            onClick={() =>
+              onFiltersChange({
+                ...filters,
+                [key]: !isActive,
+              })
+            }
             sx={{
               height: 22,
               fontSize: '0.65rem',
@@ -61,9 +59,7 @@ const FilterChips = ({ filters, onFiltersChange, stateConfig}) => (
               border: isActive ? 'none' : '1px solid',
               '&:hover': {
                 backgroundColor: isActive ? cfg.color : 'rgba(0,0,0,0.04)',
-                opacity: 0.9,
-                transform: 'translateY(-1px)'
-              }
+              },
             }}
           />
         );
@@ -120,7 +116,6 @@ const DataCard = ({ title, value}) => (
   </Card>
 );
 
-
 const SimulationProgressBar = ({ currentTime, progress = 0 }) => {
   // Funzione per determinare il colore in base allo scaglione
   const getProgressColor = (val) => {
@@ -164,11 +159,10 @@ const SimulationProgressBar = ({ currentTime, progress = 0 }) => {
   );
 };
 
-
 // --- LISTA VEICOLI
-const VehicleList = ({ vehicles, onSelectVehicle, pinnedVehicles, togglePin, stateConfig }) => {
+const VehicleList = ({ vehicles, onSelectVehicle, pinnedVehicles, togglePin, stateConfig, showingRouteVehicle, onToggleRoute }) => {
   return (
-    <List dense sx={{ maxHeight: 400 }}>
+    <List sx={{ maxHeight: 400, pb: 2, mb: 1}}>
       {vehicles.map((v) => {
         const config = stateConfig[(v.state || '').toLowerCase()] || stateConfig.unknown;
         const isPinned = pinnedVehicles[v.id];
@@ -177,33 +171,52 @@ const VehicleList = ({ vehicles, onSelectVehicle, pinnedVehicles, togglePin, sta
             key={v.id}
             onClick={() => onSelectVehicle(v)}
             sx={{ 
-              borderRadius: 1, mb: 0.5, borderLeft: `4px solid ${isPinned ? '#2196f3' : 'transparent'}`,
-              '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' } 
+              px: 1, mb: 0.5,  borderLeft: `4px solid ${isPinned ? '#2196f3' : 'transparent'}`,
+              alignItems: 'flex-start',
+              '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' }
             }}
             secondaryAction={
-              <IconButton size="small" onClick={(e) => togglePin(e, v.id)}>
-                {isPinned ? <PushPinIcon fontSize="small" color="primary" /> : <PushPinOutlinedIcon fontSize="small" />}
-              </IconButton>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
+                <Tooltip title={showingRouteVehicle === v.id ? "Hide Route" : "Show Route"}>
+                  <IconButton 
+                    size="small" 
+                    onClick={(e) => { e.stopPropagation(); onToggleRoute(v.id); }}
+                    aria-label={showingRouteVehicle === v.id ? 'Hide route' : 'Show route'}
+                  >
+                    {showingRouteVehicle === v.id ? 
+                      <RouteIcon fontSize="small" color="primary" /> : 
+                      <RouteIcon fontSize="small" />
+                    }
+                  </IconButton>
+                </Tooltip>
+
+                <Tooltip title={isPinned ? 'Unpin vehicle' : 'Pin vehicle'}>
+                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); togglePin(e, v.id); }} aria-label={isPinned ? 'Unpin' : 'Pin'}>
+                    {isPinned ? <PushPinIcon fontSize="small" color="primary" /> : <PushPinOutlinedIcon fontSize="small" />}
+                  </IconButton>
+                </Tooltip>
+              </Box>
             }
           >
-            <ListItemIcon sx={{ minWidth: 35 }}>
-              <DirectionsCarIcon />
-            </ListItemIcon>
-            <ListItemText 
-              primary={v.displayName} 
-              secondary={
-                <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
-                  <Chip 
-                    label={config.label} 
-                    size="small" 
-                    variant="outlined" 
-                    sx={{ height: 18, fontSize: '0.6rem', color: config.color, borderColor: config.color }} 
-                  />
-                  <Typography variant="caption">SoC: {v.soc}%</Typography>
-                  <Typography variant="caption">Km: {v.kmDriven}</Typography>
-                </Stack>
-              } 
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">{v.id}</Typography>
+                  <Typography variant="subtitle1" fontWeight={700}>{v.displayName}</Typography>
+                </Box>
+              </Box>
+
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                <Chip 
+                  label={config.label} 
+                  size="small" 
+                  variant="outlined" 
+                  sx={{ height: 20, fontSize: '0.7rem', color: config.color, borderColor: config.color }} 
+                />
+                <Typography variant="caption" color="text.secondary">SoC: {(v.soc ?? 0).toFixed(2)}%</Typography>
+                <Typography variant="caption" color="text.secondary">Km: {v.kmDriven?.toFixed(2) ?? '0.00'}</Typography>
+              </Stack>
+            </Box>
           </ListItem>
         );
       })}
@@ -211,19 +224,27 @@ const VehicleList = ({ vehicles, onSelectVehicle, pinnedVehicles, togglePin, sta
   );
 };
 
-
 const EnhancedFloatingMenu = ({
   vehicles = [],
   hubs = [],
   stats = {},
+  simulationTime = { timestamp: 0.0, formattedTime: "00:00:00" },
   onSelectVehicle,
   filters,
   onFiltersChange,
   isConnected,
   stateConfig,
+  showingRouteVehicle,
+  onToggleRoute,
+  // Props per settings
+  settingsOpen,
+  onSettingsToggle,
+  simulationSettings = { isConfigured: false },
+  isSimulating = false,
+  onPlayClick,
+  isLoading = false,
 }) => {
   const [tabIndex, setTabIndex] = useState(0);
-  const [isSimulating, setIsSimulating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [pinnedVehicles, setPinnedVehicles] = useState({});
 
@@ -235,7 +256,6 @@ const EnhancedFloatingMenu = ({
 
   // Logica filtraggio e ordinamento veicoli (usa direttamente Vehicle model)
   const processedVehicles = useMemo(() => {
-    console.log("Rista..."); // Debug per vedere se scatta ad ogni update WS
     return [...vehicles] // Creiamo una copia locale
       .filter(v => v.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => (pinnedVehicles[b.id] || 0) - (pinnedVehicles[a.id] || 0));
@@ -245,7 +265,7 @@ const EnhancedFloatingMenu = ({
     <Paper
       elevation={4}
       sx={{
-        position: 'absolute', top: 20, left: 20, width: 380, zIndex: 1000,
+        position: 'absolute', top: 20, left: 20, width: 450, zIndex: 1000,
         borderRadius: '12px', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
       }}
     >
@@ -258,36 +278,78 @@ const EnhancedFloatingMenu = ({
             <Typography variant="caption">{isConnected ? 'Connected' : 'Disconnected'}</Typography>
           </Stack>
         </Box>
-        <Tooltip title={isSimulating ? "Stop Simulation" : "Start Simulation"}>
-          <IconButton 
-            onClick={() => setIsSimulating(!isSimulating)}
-            sx={{ bgcolor: isSimulating ? '#f44336' : '#4caf50', color: 'white', '&:hover': { opacity: 0.8, bgcolor: isSimulating ? 'error.dark' : 'success.dark' }, width: 45, height: 45 }}
-          >
-            {isSimulating ? <StopIcon /> : <PlayArrowIcon />}
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title={!simulationSettings.isConfigured ? "Configura i settings prima" : (isSimulating ? "Arresta Simulazione" : "Avvia Simulazione")}>
+            <span>
+              <IconButton 
+                onClick={onPlayClick}
+                disabled={!simulationSettings.isConfigured || isLoading}
+                sx={{ 
+                  bgcolor: !simulationSettings.isConfigured ? '#9e9e9e' : (isSimulating ? '#f44336' : '#4caf50'), 
+                  color: 'white', 
+                  '&:hover': { 
+                    opacity: 0.8, 
+                    bgcolor: !simulationSettings.isConfigured ? '#757575' : (isSimulating ? 'error.dark' : 'success.dark') 
+                  }, 
+                  '&.Mui-disabled': {
+                    bgcolor: '#9e9e9e',
+                    color: 'white'
+                  },
+                  width: 45, 
+                  height: 45 
+                }}
+              >
+                {isSimulating ? <StopIcon /> : <PlayArrowIcon />}
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Impostazioni Simulazione">
+            <span>
+              <IconButton 
+                onClick={onSettingsToggle}
+                disabled={isLoading}
+                sx={{ 
+                  bgcolor: settingsOpen ? 'rgba(255,255,255,0.3)' : (simulationSettings.isConfigured ? 'rgba(255,255,255,0.1)' : 'warning.main'),
+                  '&:hover': { bgcolor: settingsOpen ? 'rgba(255,255,255,0.4)' : (simulationSettings.isConfigured ? 'rgba(255,255,255,0.2)' : 'warning.dark') },
+                  '&.Mui-disabled': {
+                    opacity: 0.6
+                  },
+                  width: 45, 
+                  height: 45 
+                }}
+              >
+                <Settings sx={{ color: 'white' }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+
       </Box>
 
       <SimulationProgressBar 
-        currentTime={"10:20:30"} 
-        progress={"10"} 
+        currentTime={simulationTime.formattedTime} 
+        progress={String(Math.round((simulationTime.timestamp || 0) * 10))}
       />
 
-
       {/* Tabs */}
-      <Tabs value={tabIndex} onChange={(_, n) => setTabIndex(n)} variant="fullWidth" sx={{ bgcolor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}>
+      <Tabs 
+        value={tabIndex} 
+        onChange={(_, n) => setTabIndex(n)} 
+        variant="fullWidth" 
+        sx={{minHeight: 72, bgcolor: '#fafafa', borderBottom: '1px solid #e0e0e0' }}
+      >
         <Tab icon={<SignalCellularAltIcon fontSize="small" />} label="Stats" />
         <Tab icon={<DirectionsCarIcon fontSize="small" />} label="Vehicles" />
         <Tab icon={<EvStationIcon fontSize="small" />} label="Hubs" />
       </Tabs>
 
-      <Box sx={{ p: 2, overflowY: 'auto', flexGrow: 1 }}>
+      <Box sx={{ p: 1.5, overflowY: 'auto', flexGrow: 1 }}>
         {/* TAB 0: STATISTICS */}
         {tabIndex === 0 && (
           <Stack spacing={2}>
 
             <DataCard title="Total Vehicles" value={stats.totalVehicles || 0} />
-            <DataCard title="Average SoC"    value={stats.averageSoC    || 0} />  
+            <DataCard title="Average SoC"    value={stats.averageSoC ? stats.averageSoC.toFixed(2) : 0} />  
             <DataCard title="Saturated Hubs" value={stats.saturatedHubs || 0} />
 
             {/* Vehicle States */}
@@ -314,7 +376,12 @@ const EnhancedFloatingMenu = ({
               InputProps={{ startAdornment: <SearchIcon fontSize="small" color="action" sx={{ mr: 1 }} /> }}
             />
             
-            <FilterChips filters={filters} onFiltersChange={onFiltersChange} stateConfig={stateConfig} />
+            <FilterChips 
+              filters={filters} 
+              onFiltersChange={onFiltersChange}
+              stateConfig={stateConfig} 
+            />
+            
             <Divider />
 
             <VehicleList
@@ -323,6 +390,8 @@ const EnhancedFloatingMenu = ({
               pinnedVehicles={pinnedVehicles}
               togglePin={togglePin}
               stateConfig={stateConfig}
+              showingRouteVehicle={showingRouteVehicle}
+              onToggleRoute={onToggleRoute}
             ></VehicleList>
           </Stack>
         )}
@@ -333,11 +402,11 @@ const EnhancedFloatingMenu = ({
             {hubs.length === 0 ? (
               <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>No hubs available</Typography>
             ) : (
-              <Box>
+              <>
                 {hubs.map((hub) => (
                   <HubCard key={hub.id} hub={hub} />
                 ))}
-              </Box>
+              </>
             )}
           </Stack>
         )}
