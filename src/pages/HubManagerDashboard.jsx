@@ -58,22 +58,11 @@ const DEFAULT_HUB_STATE = {
 const DEFAULT_RESERVATIONS = [];
 
 const HubManagerDashboard = () => {
-  const mockHubs = [
-    {
-      id: 'hub_1',
-      name: 'hub_1',
-      pos: [45, 9],
-    },
-    {
-      id: 'hub_2',
-      name: 'hub_2',
-      pos: [45.4642, 9.1900],
-    }
-  ];
+
 
   const navigate = useNavigate();
   const { hubs: contextHubs } = useSimulation();
-  const hubs = contextHubs.length > 0 ? contextHubs : mockHubs;
+  const hubs = contextHubs.length > 0 ? contextHubs : HUB_MANAGER_MOCK.MOCK_HUBS;
   const [selectedHubId, setSelectedHubId] = useState(hubs.length > 0 ? hubs[0].id : null);
 
   const [selectedHubStructure, setHubStructure] = useState(DEFAULT_HUB_STRUCTURE);
@@ -144,6 +133,7 @@ const HubManagerDashboard = () => {
   const normalOccupied = normalChargers.filter((c) => c.occupied).length;
   const fastOccupied = fastChargers.filter((c) => c.occupied).length;
 
+  // const mapPois = hubs.map((hub) => ({ ...hub, type: 'hub' }));
   const mapPois = hubs.map((hub) => ({ ...hub, type: 'hub' }));
 
   // To render the hub data, its structure and current state are necessary
@@ -406,14 +396,16 @@ const HubManagerDashboard = () => {
             color={charger.chargerType !== 'AC' ? 'warning' : 'default'}
           />
         </TableCell>
-        <TableCell>{charger.plugPowerKw}</TableCell>
+        <TableCell>{charger.plugPowerKw.toFixed(2) || 0.00}</TableCell>
         <TableCell>{getChargerOperationalStateChip(charger.chargerOperationalState)}</TableCell>
         <TableCell>
           <Chip
-            label={charger.occupied ? 'Occupato' : 'Disponibile'}
+            label={isNotInitialized ? 'Non inizializzato' :
+              charger.occupied ? 'Occupato' : 'Disponibile'}
             size="small"
-            variant="filled"
-            color={charger.occupied ? 'error' : 'primary'}
+            variant={isNotInitialized ? 'outlined' : "filled"}
+            color={isNotInitialized ? 'default' :
+              charger.occupied ? 'error' : 'primary'}
           />
         </TableCell>
         <TableCell align="right">{charger.currentPower?.toFixed(2) || 0.00}</TableCell>
@@ -473,7 +465,7 @@ const HubManagerDashboard = () => {
           </Typography>
 
           <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Seleziona l'Hub</InputLabel>
+            <InputLabel>Selez. Hub</InputLabel>
             <Select value={selectedHubId || ''} onChange={(e) => setSelectedHubId(e.target.value)} label="Select Hub">
               {hubs.map((hub) => (
                 <MenuItem key={hub.id} value={hub.id}>{hub.name}</MenuItem>
@@ -721,10 +713,10 @@ const HubManagerDashboard = () => {
                               </TableCell>
                               <TableCell>
                                 <Chip
-                                  label={reservation.reservedPlug}
+                                  label={reservation.chargerType}
                                   size="small"
                                   variant="outlined"
-                                  color={reservation.reservedPlug !== 'AC' ? 'warning' : 'default'}
+                                  color={reservation.chargerType !== 'AC' ? 'warning' : 'default'}
                                 />
                               </TableCell>
                             </TableRow>

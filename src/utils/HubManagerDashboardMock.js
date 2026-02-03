@@ -15,6 +15,19 @@ const MOCK_CHARGER_STATES = [
 ];
 
 export const HUB_MANAGER_MOCK = {
+  MOCK_HUBS: [
+    {
+      id: 'hub_1',
+      name: 'hub_1',
+      pos: [45, 9],
+    },
+    {
+      id: 'hub_2',
+      name: 'hub_2',
+      pos: [45.4642, 9.1900],
+    }
+  ],
+
   MOCK_CHARGER_STRUCTURE,
 
   MOCK_HUB_STRUCTURE: {
