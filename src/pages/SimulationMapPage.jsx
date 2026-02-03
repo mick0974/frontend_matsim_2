@@ -7,11 +7,16 @@ import {
   DialogContentText, 
   DialogActions, 
   Button,
-  Typography 
+  Typography,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import MapView from "../components/map";
 import EnhancedFloatingMenu from "../components/EnhancedFloatingMenu";
+import SimulationSettingsModal from "../components/SimulationSettingsModal";
+import { useSimulation } from "../contexts/SimulationContext.jsx";
+import "./SimulationMapPage.css";
 
 // Configurazione centralizzata degli stati dei veicoli
 const STATE_CONFIG = {
@@ -47,55 +52,44 @@ const STATE_CONFIG = {
   },
 };
 
-import { useSimulation } from "../contexts/SimulationContext.jsx";
-import "./SimulationMapPage.css";
-
-const getRandomPos = () => {
-  // Berlino: lat 52.48 - 52.54, lng 13.36 - 13.45
-  const lat = 52.48 + Math.random() * (52.54 - 52.48);
-  const lng = 13.36 + Math.random() * (13.45 - 13.36);
-  return [lat, lng];
-};
-
 const SimulationMapPage = () => {
   const {
     vehicles,
     hubs,
     simulationStats,
+    simulationTime,
+    vehiclePaths,
     wsConnected,
     isSimulationRunning,
-    startSimulation,
-    stopSimulation,
+    runSimulationWithSettings,
+    stopSimulationWithSettings,
   } = useSimulation();
 
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showingRouteVehicle, setShowingRouteVehicle] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [simulationSettings, setSimulationSettings] = useState({ isConfigured: false });
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
   const [filters, setFilters] = useState({
-    showCharging: true,
-    showIdle: true,
-    showMoving: true,
+    moving:   true,
+    charging: true,
+    parked:   true,
+    idle:     true,
+    stopped:  true,
   });
 
-  // Avvia la simulazione e connessione WS al mount
+  // Avvia la simulazione e connessione WS quando si preme Play
+  // Connessione WS rimossa dal mount - avviene solo quando l'utente preme Play
   useEffect(() => {
     let mounted = true;
 
-    const init = async () => {
-      try {
-        await startSimulation();
-      } catch (e) {
-        console.error("[SimulationMapPage] Errore inizializzazione simulazione:", e);
-        if (mounted) setShowErrorModal(true);
-      }
-    };
-
-    init();
-
     return () => {
       mounted = false;
-      stopSimulation();
     };
-  }, [startSimulation, stopSimulation]);
+  }, []);
 
   // Mostra il modal se non ci sono dati o WS non connessa
   useEffect(() => {
@@ -110,15 +104,125 @@ const SimulationMapPage = () => {
   const handleCloseModal = () => setShowErrorModal(false);
   const handleRetryConnection = async () => {
     setShowErrorModal(false);
-    await startSimulation();
+    // Se il modal di retry viene mostrato, prova ad avviare con settings default
+    const result = await runSimulationWithSettings({});
+    if (result.success) {
+      setNotification({
+        open: true,
+        message: result.message,
+        severity: 'success'
+      });
+    }
+  };
+
+  // Handlers per settings
+  const handleSettingsToggle = () => {
+    setSettingsOpen(prev => !prev);
+  };
+
+  const handleSettingsChange = (newSettings) => {
+    setSimulationSettings(newSettings);
+  };
+
+  const handlePlayClick = async () => {
+    if (!simulationSettings.isConfigured) {
+      setSettingsOpen(true);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Costruisci DTO per le impostazioni
+      const dtoPayload = {
+        configPath: simulationSettings.configPath,
+        csvResourceHub: simulationSettings.csvResourceHub,
+        csvResourceEv: simulationSettings.csvResourceEv,
+        vehicleStrategy: simulationSettings.vehicleStrategy,
+        planStrategy: simulationSettings.planStrategy,
+        sampleSizeStatic: simulationSettings.sampleSizeStatic,
+        numeroVeicoli: simulationSettings.numeroVeicoli,
+        socMedio: simulationSettings.socMedio,
+        socStdDev: simulationSettings.socStdDev,
+        targetSocMean: simulationSettings.targetSocMean,
+        targetSocStdDev: simulationSettings.targetSocStdDev,
+        stepSize: simulationSettings.stepSize,
+        debugLink: simulationSettings.debugLink,
+        publisherRateMs: simulationSettings.publisherRateMs,
+        publisherDirty: simulationSettings.publisherDirty,
+        realTime: simulationSettings.realTime
+      };
+
+      // Chiama il context che gestisce tutto il flusso
+      const result = await runSimulationWithSettings(dtoPayload);
+
+      if (result.success) {
+        setIsSimulating(true);
+        setNotification({
+          open: true,
+          message: result.message,
+          severity: 'success'
+        });
+      } else {
+        setNotification({
+          open: true,
+          message: result.message,
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: error.message || 'Errore durante l\'avvio della simulazione',
+        severity: 'error'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStopClick = async () => {
+    try {
+      const result = await stopSimulationWithSettings();
+      if (result.success) {
+        setNotification({
+          open: true,
+          message: result.message,
+          severity: 'success'
+        });
+      } else {
+        setNotification({
+          open: true,
+          message: result.message,
+          severity: result.status === 503 ? 'warning' : 'error'
+        });
+      }
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: error.message || 'Errore durante l\'arresto della simulazione',
+        severity: 'error'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePlayOrStop = () => {
+    const nextIsSimulating = !isSimulating;
+    setIsSimulating(nextIsSimulating);
+    setIsLoading(true);
+
+    if (isSimulating) {
+      handleStopClick();
+    } else {
+      handlePlayClick();
+    }
   };
 
   // Filtra veicoli (plain objects dal Context)
   const filteredVehicles = vehicles.filter(v => {
-    if (v.state === "charging" && !filters.showCharging) return false;
-    if (v.state === "idle" && !filters.showIdle) return false;
-    if (v.state === "moving" && !filters.showMoving) return false;
-    return true;
+    const state = (v.state || 'unknown').toLowerCase();
+    return filters[state] !== false;
   });
 
   // Fallback posizione (es: centro mappa o coordinate note)
@@ -131,23 +235,161 @@ const SimulationMapPage = () => {
     return [DEFAULT_POS.lat, DEFAULT_POS.lng];
   };
 
-  // Crea nuovi oggetti per evitare mutazioni sui plain objects del Context
-  const allPois = [
-    ...filteredVehicles.map(v => ({
+  /**
+   * Crea una chiave univoca per raggruppare i POI per posizione
+   * Usa una precisione di 6 decimali per evitare di raggruppare posizioni molto vicine ma non identiche
+   */
+  const getPosKey = (pos) => {
+    if (!Array.isArray(pos) || pos.length < 2) return 'default';
+    return `${pos[0].toFixed(6)},${pos[1].toFixed(6)}`;
+  };
+
+  /**
+   * Aggrega i POI: raggruppa veicoli per posizione
+   * Se più veicoli in un hub → mostra icona hub con badge
+   * Se più veicoli non in hub → mostra icona veicolo con badge
+   */
+  const aggregatePois = () => {
+    // Crea POI base per veicoli e hub
+    const vehiclePois = filteredVehicles.map(v => ({
       ...v,
       type: "vehicle",
-      pos: toLatLngArray(v.pos || getRandomPos()),
-    })),
-    ...hubs.map(h => ({
+      pos: toLatLngArray(v.pos),
+    }));
+
+    const hubPois = hubs.map(h => ({
       ...h,
       type: "hub",
-      pos: toLatLngArray(h.pos || getRandomPos()),
-    })),
-  ];
+      pos: toLatLngArray(h.pos),
+    }));
+
+    // Raggruppa i veicoli per posizione
+    const vehiclesByPosition = {};
+    
+    vehiclePois.forEach(vehicle => {
+      const key = getPosKey(vehicle.pos);
+      if (!vehiclesByPosition[key]) {
+        vehiclesByPosition[key] = [];
+      }
+      vehiclesByPosition[key].push(vehicle);
+    });
+
+    // Raggruppa gli hub per posizione
+    const hubsByPosition = {};
+    hubPois.forEach(hub => {
+      const key = getPosKey(hub.pos);
+      hubsByPosition[key] = hub;
+    });
+
+    // Costruisci i POI finali con aggregazione
+    const aggregatedPois = [];
+
+    // Per ogni posizione con veicoli
+    Object.entries(vehiclesByPosition).forEach(([posKey, vehiclesAtPos]) => {
+      const pos = vehiclesAtPos[0].pos; // Tutti i veicoli in questo gruppo hanno la stessa posizione
+      const hubAtPos = hubsByPosition[posKey];
+
+      if (vehiclesAtPos.length === 1 && !hubAtPos) {
+        // Singolo veicolo, nessun hub → aggiungilo così com'è
+        aggregatedPois.push(vehiclesAtPos[0]);
+      } else if (vehiclesAtPos.length > 1) {
+        // Multipli veicoli
+        if (hubAtPos) {
+          // Aggregazione in hub: mostra icona hub con badge
+          const stateDistribution = {};
+          vehiclesAtPos.forEach(v => {
+            stateDistribution[v.state] = (stateDistribution[v.state] || 0) + 1;
+          });
+
+          const dominantState = Object.entries(stateDistribution).sort(
+            (a, b) => b[1] - a[1]
+          )[0][0];
+
+          aggregatedPois.push({
+            ...hubAtPos,
+            type: "aggregated-hub",
+            aggregatedVehicles: vehiclesAtPos,
+            aggregateData: {
+              count: vehiclesAtPos.length,
+              dominantState,
+              stateDistribution,
+              isHub: true,
+            },
+            pos,
+          });
+        } else {
+          // Aggregazione non-hub: mostra icona veicolo con badge
+          const stateDistribution = {};
+          vehiclesAtPos.forEach(v => {
+            stateDistribution[v.state] = (stateDistribution[v.state] || 0) + 1;
+          });
+
+          const dominantState = Object.entries(stateDistribution).sort(
+            (a, b) => b[1] - a[1]
+          )[0][0];
+
+          aggregatedPois.push({
+            id: `aggregated-${posKey}`,
+            type: "aggregated-vehicle",
+            aggregatedVehicles: vehiclesAtPos,
+            aggregateData: {
+              count: vehiclesAtPos.length,
+              dominantState,
+              stateDistribution,
+              isHub: false,
+            },
+            pos,
+          });
+        }
+      } else if (hubAtPos) {
+        // Un solo veicolo in un hub → mostra hub con badge
+        const stateDistribution = {};
+        vehiclesAtPos.forEach(v => {
+          stateDistribution[v.state] = (stateDistribution[v.state] || 0) + 1;
+        });
+
+        const dominantState = Object.entries(stateDistribution).sort(
+          (a, b) => b[1] - a[1]
+        )[0][0];
+
+        aggregatedPois.push({
+          ...hubAtPos,
+          type: "aggregated-hub",
+          aggregatedVehicles: vehiclesAtPos,
+          aggregateData: {
+            count: vehiclesAtPos.length,
+            dominantState,
+            stateDistribution,
+            isHub: true,
+          },
+          pos,
+        });
+      }
+    });
+
+    // Aggiungi gli hub senza veicoli
+    Object.entries(hubsByPosition).forEach(([posKey, hub]) => {
+      if (!vehiclesByPosition[posKey]) {
+        aggregatedPois.push(hub);
+      }
+    });
+
+    return aggregatedPois;
+  };
+
+  const allPois = aggregatePois();
 
   const handleMarkerClick = (poi) => {
     if (poi.type === "vehicle") setSelectedVehicle(poi);
   };
+
+  // Toggle visualizzazione percorso veicolo
+  const handleToggleRoute = (vehicleId) => {
+    setShowingRouteVehicle(prev => prev === vehicleId ? null : vehicleId);
+  };
+
+  // Ottieni il percorso del veicolo selezionato
+  const activeVehiclePath = showingRouteVehicle ? (vehiclePaths[showingRouteVehicle] || []) : [];
 
   return (
     <Box sx={{ height: "100vh", width: "100%", position: "relative", overflow: "hidden" }}>
@@ -155,12 +397,30 @@ const SimulationMapPage = () => {
         vehicles={filteredVehicles}
         hubs={hubs}
         stats={simulationStats}
+        simulationTime={simulationTime}
         onSelectVehicle={setSelectedVehicle}
         filters={filters}
         onFiltersChange={setFilters}
         isConnected={wsConnected}
         isSimulationRunning={isSimulationRunning}
         stateConfig={STATE_CONFIG}
+        showingRouteVehicle={showingRouteVehicle}
+        onToggleRoute={handleToggleRoute}
+        // Props per settings
+        settingsOpen={settingsOpen}
+        onSettingsToggle={handleSettingsToggle}
+        simulationSettings={simulationSettings}
+        isSimulating={isSimulating}
+        onPlayClick={handlePlayOrStop}
+        isLoading={isLoading}
+      />
+
+      {/* Floating Settings Menu */}
+      <SimulationSettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSettingsChange={handleSettingsChange}
+        initialSettings={simulationSettings}
       />
 
       <MapView
@@ -168,6 +428,7 @@ const SimulationMapPage = () => {
         onSelectPoi={handleMarkerClick}
         selectedVehicle={selectedVehicle}
         stateConfig={STATE_CONFIG}
+        vehiclePath={activeVehiclePath}
       />
 
       {/* Modal di errore */}
@@ -197,6 +458,22 @@ const SimulationMapPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar per notifiche */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={() => setNotification({ ...notification, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setNotification({ ...notification, open: false })} 
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

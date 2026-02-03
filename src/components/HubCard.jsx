@@ -1,22 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  Card, CardContent, CardActions, Typography, Box, 
-  LinearProgress, Collapse, List, ListItem, ListItemText, IconButton 
+  Card, CardContent, Typography, Box, List, ListItem, ListItemText 
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-// Componente stilizzato per l'icona di espansione
-const ExpandMore = styled((props) => {
-  const { expand, ...other } = props;
-  return <IconButton {...other} />;
-})(({ theme, expand }) => ({
-  transform: !expand ? 'rotate(0deg)' : 'rotate(180deg)',
-  marginLeft: 'auto',
-  transition: theme.transitions.create('transform', {
-    duration: theme.transitions.duration.shortest,
-  }),
-}));
+
 
 const countOccupiedByType = (hub, type) => {
   if (!hub || !hub.chargers) return 0;
@@ -27,8 +14,7 @@ const countOccupiedByType = (hub, type) => {
     // Un caricatore è considerato occupato se:
     // 1. Il flag occupied è true
     // 2. OPPURE c'è un evId presente (veicolo connesso)
-    const isOccupied = charger.occupied === true || 
-                       (charger.evId !== null && charger.evId !== undefined && charger.evId !== "");
+    const isOccupied = charger.occupied === true || (charger.evId !== null && charger.evId !== undefined && charger.evId !== "");
     
     return isRightType && isOccupied;
   }).length;
@@ -36,12 +22,6 @@ const countOccupiedByType = (hub, type) => {
 
 
 const HubCard = ({ hub }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  const handleExpandClick = () => {
-    setExpanded(!expanded);
-  };
-
   // Logica di calcolo occupazione
   const normalCount = countOccupiedByType(hub, 'normal');
   const fastCount = countOccupiedByType(hub, 'fast');
@@ -54,17 +34,16 @@ const HubCard = ({ hub }) => {
     <Card
       variant="outlined"
       sx={{
-        mb: 2, // Margine tra le card
-        p:0,
+        p: 0,
         borderLeft: isSaturated ? '4px solid #f44336' : '4px solid #4caf50',
       }}
     >
-      <CardContent sx={{ p: 0}}>
+      <CardContent sx={{p: 0, m:0 }}>
         <Typography variant="subtitle1" fontWeight="bold" sx={{ px: 2, py:0.8}}>
           {hub.name}
         </Typography>
 
-        <List dense sx={{maxHeight: 300, overflowY: 'auto', p:0}}>
+        <List sx={{maxHeight: 300, overflowY: 'auto', p:0}}>
           {hub.chargers && hub.chargers.length > 0 ? (
             hub.chargers.map((charger, idx) => (
               <ListItem
@@ -97,7 +76,7 @@ const HubCard = ({ hub }) => {
                         {charger.occupied ? `Occupato${charger.evId ? ` da ${charger.evId}` : ''}` : 'Libero'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {charger.energy || 0} kWh
+                        {charger.energy != 0 ? charger.energy.toFixed(10) : 0} j
                       </Typography>
                     </Box>
                   }
