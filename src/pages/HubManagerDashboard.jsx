@@ -37,6 +37,7 @@ import MapView from '../components/map';
 import {useSimulation} from '../contexts/SimulationContext';
 import HubManagementApi from "../services/hubManagementApi.js";
 import {HUB_MANAGER_MOCK} from "../utils/HubManagerDashboardMock.js";
+import AppConfig from "../config/appConfig.js";
 
 // Default states when mock is disabled
 const DEFAULT_HUB_STRUCTURE = {
@@ -94,7 +95,7 @@ const HubManagerDashboard = () => {
   }
 
   // Determine data source
-  const useMockData = false; //AppConfig.USE_MOCK_DATA;
+  const useMockData = AppConfig.USE_MOCK_DATA;
   const hubStructure = useMockData ? HUB_MANAGER_MOCK.MOCK_HUB_STRUCTURE : selectedHubStructure;
   const hubState = useMockData ? HUB_MANAGER_MOCK.MOCK_HUB_STATE : selectedHubState;
   const reservationsData = useMockData ? HUB_MANAGER_MOCK.MOCK_RESERVATIONS : reservations;
@@ -626,7 +627,7 @@ const HubManagerDashboard = () => {
                     <Card variant="outlined">
                       <CardContent sx={{ pb: 1.5 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption">Connettori a Ricarica Lenta</Typography>
+                          <Typography variant="caption">Connettori a Ricarica Normale</Typography>
                           <Typography variant="caption" fontWeight="bold">{normalOccupied} / {normalActive} Occupati</Typography>
                         </Box>
                         <LinearProgress variant="determinate" value={normalActive > 0 ? (normalOccupied / normalActive) * 100 : 0} />

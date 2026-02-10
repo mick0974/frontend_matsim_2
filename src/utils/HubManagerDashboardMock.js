@@ -19,12 +19,12 @@ export const HUB_MANAGER_MOCK = {
     {
       id: 'hub_1',
       name: 'hub_1',
-      pos: [45, 9],
+      pos: [52.522796, 13.413725],
     },
     {
       id: 'hub_2',
       name: 'hub_2',
-      pos: [45.4642, 9.1900],
+      pos: [52.515500, 13.415350],
     }
   ],
 
