@@ -47,11 +47,11 @@ export const HUB_MANAGER_MOCK = {
   },
 
   MOCK_RESERVATIONS: [
-    { vehicleId: 'EV_1', reservationDate: '2026-01-18', startTime: '09:00', endTime: '10:30', reservedPlug: 'AC' },
-    { vehicleId: 'EV_3', reservationDate: '2026-01-18', startTime: '11:00', endTime: '12:00', reservedPlug: 'CCS' },
-    { vehicleId: 'EV_5', reservationDate: '2026-01-18', startTime: '14:00', endTime: '15:30', reservedPlug: 'AC' },
-    { vehicleId: 'EV_2', reservationDate: '2026-01-19', startTime: '08:00', endTime: '09:30', reservedPlug: 'CCS' },
-    { vehicleId: 'EV_4', reservationDate: '2026-01-19', startTime: '10:00', endTime: '11:00', reservedPlug: 'AC' },
-    { vehicleId: 'EV_6', reservationDate: '2026-01-20', startTime: '13:00', endTime: '14:30', reservedPlug: 'AC' }
+    { vehicleId: 'EV_1', reservationDate: '2026-01-18', startTime: '09:00', endTime: '10:30', chargerType: 'AC' },
+    { vehicleId: 'EV_3', reservationDate: '2026-01-18', startTime: '11:00', endTime: '12:00', chargerType: 'CCS' },
+    { vehicleId: 'EV_5', reservationDate: '2026-01-18', startTime: '14:00', endTime: '15:30', chargerType: 'AC' },
+    { vehicleId: 'EV_2', reservationDate: '2026-01-19', startTime: '08:00', endTime: '09:30', chargerType: 'CCS' },
+    { vehicleId: 'EV_4', reservationDate: '2026-01-19', startTime: '10:00', endTime: '11:00', chargerType: 'AC' },
+    { vehicleId: 'EV_6', reservationDate: '2026-01-20', startTime: '13:00', endTime: '14:30', chargerType: 'AC' }
   ]
 };
