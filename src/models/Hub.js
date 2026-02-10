@@ -91,7 +91,10 @@ export class Hub {
       });
     }
 
-    if (wsData.pos !== undefined) this.pos = wsData.pos;
+    // Importante: pos arriva già come [lat, lng] dal WebSocket handler
+    if (wsData.pos !== undefined) {
+      this.pos = Array.isArray(wsData.pos) ? [...wsData.pos] : wsData.pos;
+    }
   }
 
 /**
@@ -111,7 +114,8 @@ export class Hub {
       occupancy: { ...this.occupancy },
       totalCapacity: { ...this.totalCapacity },
       energy: this.energy,
-      pos: this.pos ? { ...this.pos } : null,
+      // Ci assicuriamo che l'array posizione sia un nuovo riferimento
+      pos: Array.isArray(this.pos) ? [...this.pos] : this.pos,
       isSaturated: this.isSaturated,
     };
   }
@@ -125,9 +129,20 @@ export class Hub {
       occupancy: this.occupancy,
       energy: this.energy,
       chargers: this.chargers,
-      pos: this.pos,
+      pos: Array.isArray(this.pos) ? [...this.pos] : this.pos,
     };
   }
+}
+
+/**
+ * Converte position {x, y} dal backend in [lat, lng] per Leaflet
+ */
+function convertPosition(position, fallbackPos) {
+  if (position && position.x !== undefined && position.y !== undefined) {
+    // Backend fornisce position: {x, y} dove x=lng, y=lat
+    return [position.y, position.x];
+  }
+  return fallbackPos || null;
 }
 
 /**
@@ -152,5 +167,6 @@ export function createHubFromAPI(apiData) {
       normal: 0,
       fast: 0,
     },
+    pos: convertPosition(apiData.position, apiData.pos),
   });
 }
